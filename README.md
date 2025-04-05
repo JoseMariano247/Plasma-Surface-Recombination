@@ -158,4 +158,4 @@ José Mariano
 
 Under the guidance of:
 
-Vasco Guerra
+Professor Vasco Guerra
