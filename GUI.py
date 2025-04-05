@@ -106,25 +106,34 @@ def generate_plots(file_path):
         rate_cols = [col for col in data.columns if col.startswith("R")]
 
         
-        plt.figure(figsize=(10, 6))
+        plt.figure(figsize=(9, 16))
         for i, col in enumerate(pop_cols):
             plt.plot(time, data[col]/np.max(data[col]), label=col, color=colors_colourblind[i % len(colors_colourblind)])
         
-        plt.xlabel("Time [s]", fontsize=14)
-        plt.ylabel("Concentration", fontsize=14)
-        plt.xscale("log")
-        plt.legend(fontsize=12)
+        plt.xlabel('Time [s]', fontsize=18)
+        plt.ylabel('Concentration', fontsize=18)
+        plt.xscale('log')
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.xlim(10e-16, 10e-11)
+
+        plt.legend(fontsize=14)
         plt.grid(True)
         plt.show()
 
-        plt.figure(figsize=(10, 6))
+
+        plt.figure(figsize=(9, 16))
         for i, col in enumerate(rate_cols):
             plt.plot(time, data[col]/np.max(data[col]), label=col, color=colors_colourblind[i % len(colors_colourblind)])
         
-        plt.xlabel("Time [s]", fontsize=14)
-        plt.ylabel("Concentration", fontsize=14)
-        plt.xscale("log")
-        plt.legend(fontsize=12)
+        plt.xlabel('Time [s]', fontsize=18)
+        plt.ylabel('Reaction Rate', fontsize=18)
+        plt.xscale('log')
+        plt.xticks(fontsize=16)
+        plt.yticks(fontsize=16)
+        plt.xlim(10e-16, 10e-11)
+
+        plt.legend(fontsize=14)
         plt.grid(True)
         plt.show()
 

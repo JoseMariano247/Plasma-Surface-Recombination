@@ -114,20 +114,20 @@ std::vector<double> MonteCarloRecombinationReal(double initial_A, double initial
         switch (reaction)
         {
             case 1: // A + Fv -> Af
-                //if (A > 0 && Fv > 0) { A--; Fv--; Af++; }
-                if (A > 0 && Fv > 0) {Fv--; Af++; }
+                if (A > 0 && Fv > 0) { A--; Fv--; Af++; }
+                //if (A > 0 && Fv > 0) {Fv--; Af++; }
                 break;
             case 2: // Af -> A + Fv
-                //if (Af > 0) { Af--; A++; Fv++; }
-                if (Af > 0) { Af--; Fv++; }
+                if (Af > 0) { Af--; A++; Fv++; }
+                //if (Af > 0) { Af--; Fv++; }
                 break;
             case 3: // A + Sv -> As
-                //if (A > 0 && Sv > 0) { A--; Sv--; As++; }
-                if (A > 0 && Sv > 0) { Sv--; As++; }
+                if (A > 0 && Sv > 0) { A--; Sv--; As++; }
+                //if (A > 0 && Sv > 0) { Sv--; As++; }
                 break;
             case 4: // A + As -> A2 + Sv
-                //if (A > 0 && As > 0) { A--; As--; A2++; Sv++; }
-                if (A > 0 && As > 0) { As--; A2++; Sv++; }
+                if (A > 0 && As > 0) { A--; As--; A2++; Sv++; }
+                //if (A > 0 && As > 0) { As--; A2++; Sv++; }
                 break;
             case 5: // Af + Sv -> Fv + As
                 if (Af > 0 && Sv > 0) { Af--; Sv--; Fv++; As++; }

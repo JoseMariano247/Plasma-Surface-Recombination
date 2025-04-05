@@ -6,7 +6,13 @@ import numpy as np
 # Read the data from output.txt
 data_8 = pd.read_csv("Real_Test_MC.txt", delimiter='\t')
 data_9 = pd.read_csv("Real_Test_RK.txt", delimiter='\t')
+data_10 = pd.read_csv("recomb_prob.txt", delimiter='\t')
 
+time          = data_10.iloc[:, 0]
+gamma_ER      = data_10.iloc[:, 1]
+gamma_LHS     = data_10.iloc[:, 2]
+gamma_LHF     = data_10.iloc[:, 3]       
+gamma_total   = data_10.iloc[:, 4]
 
 time_8 = data_8.iloc[:, 0]
 A_r_2    = data_8.iloc[:, 1]
@@ -39,6 +45,24 @@ R42 = data_8.iloc[:, 10]
 R52 = data_8.iloc[:, 11]
 R62 = data_8.iloc[:, 12]
 CR72 = data_8.iloc[:, 13]
+
+plt.figure(figsize=(9, 16))
+
+plt.plot(time, gamma_ER/np.max(gamma_total), linestyle='-', color='black', label='$\gamma_{ER}$')
+plt.plot(time, gamma_LHS/np.max(gamma_total), linestyle='-', color='cyan', label='$\gamma_{LH}^S$')
+plt.plot(time, gamma_LHF/np.max(gamma_total), linestyle='-', color="palevioletred", label='$\gamma_{LH}^F$')
+plt.plot(time, gamma_total/np.max(gamma_total), linestyle='-', color="orange", label='$\gamma_{total}$')
+
+plt.xlabel('Tw [K]', fontsize=18)
+plt.ylabel('$\gamma$', fontsize=18)
+plt.yscale('log')
+plt.xticks(fontsize=16)
+plt.yticks(fontsize=16)
+plt.xlim(200, 400)
+#plt.title('Concentration vs Time')
+plt.legend(fontsize=14)
+plt.grid(True)
+plt.show()
 
 plt.figure(figsize=(9, 16))
 
