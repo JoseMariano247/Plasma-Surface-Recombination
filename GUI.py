@@ -15,7 +15,7 @@ import pandas as pd
 import numpy as np
 
 #Choice of colors for plots
-colors_colourblind = np.array(["blue", "black", "orange", "cyan", "palevioletred", "lime"])
+colors_colourblind = np.array(["blue", "black", "orange", "cyan", "palevioletred", "lime", "darkmagenta"])
 
 
 # ------------------------------------------------ #
@@ -65,11 +65,8 @@ def run_cpp_code(react_program, selected_reactions, parameters):
 
         command = [react_program] + selected_reactions + parameters
 
-        process = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, bufsize=1)
-        for line in iter(process.stdout.readline, ''):
-            print(line, end='')
+        process = subprocess.Popen(command, stderr=subprocess.PIPE, text=True, bufsize=1)
 
-        process.stdout.close()
         process.wait()
         error_text = process.stderr.read()
 
@@ -104,10 +101,24 @@ def generate_plots(file_path):
 
         data = pd.read_csv(file_path, delimiter='\t')
         time = data.iloc[:, 0]
-        species_columns = data.columns[1:]
+
+        pop_cols = [col for col in data.columns if col.startswith("Population")]
+        rate_cols = [col for col in data.columns if col.startswith("R")]
+
         
         plt.figure(figsize=(10, 6))
-        for i, col in enumerate(species_columns):
+        for i, col in enumerate(pop_cols):
+            plt.plot(time, data[col]/np.max(data[col]), label=col, color=colors_colourblind[i % len(colors_colourblind)])
+        
+        plt.xlabel("Time [s]", fontsize=14)
+        plt.ylabel("Concentration", fontsize=14)
+        plt.xscale("log")
+        plt.legend(fontsize=12)
+        plt.grid(True)
+        plt.show()
+
+        plt.figure(figsize=(10, 6))
+        for i, col in enumerate(rate_cols):
             plt.plot(time, data[col]/np.max(data[col]), label=col, color=colors_colourblind[i % len(colors_colourblind)])
         
         plt.xlabel("Time [s]", fontsize=14)

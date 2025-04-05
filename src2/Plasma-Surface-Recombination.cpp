@@ -34,6 +34,10 @@ double vD;
 double ED;
 double Er;
 double k_4;
+double vD_sd;
+double ED_sd;
+double Er_ch;
+double k4_ch; 
 
 // This map specifies what type of species each reaction needs
 static const map<string, vector<string>> reactionSpecies = {
@@ -54,17 +58,30 @@ static const map<string, int> reactionRateCount = {
 };
 
 
-int main(int argc, char* argv[]) {
+#include "Plasma-Surface-Recombination.h"
+#include <iostream>
+#include <vector>
+#include <string>
+#include <map>
+#include <set>
+#include <algorithm>
+#include <cmath>
 
-    // In case no arguments are provided
+#ifndef pi
+#define pi 3.14159265358979323846
+#endif
+
+using namespace std;
+
+int main(int argc, char* argv[]) {
     if (argc < 2) {
         cerr << "No arguments provided.\n";
         return 1;
-    }  
-    
+    }
+
+    // Parse reaction names until a numeric token is encountered.
     vector<string> reactions;
     int argIndex = 1;
-
     while (argIndex < argc) {
         string token = argv[argIndex];
         try {
@@ -75,46 +92,34 @@ int main(int argc, char* argv[]) {
             argIndex++;
         }
     }
-
-    // In case no reactions are selected
     if (reactions.empty()) {
         cerr << "No reactions specified.\n";
         return 1;
     }
 
-
+    // Compute nominal needed rate constants.
     int neededRateConstants = 0;
     for (auto &r : reactions) {
         auto it = reactionRateCount.find(r);
-
-        // In case some reaction given in unknown
         if (it == reactionRateCount.end()) {
             cerr << "Unknown reaction: " << r << "\n";
             return 1;
         }
         neededRateConstants += it->second;
     }
-
+    // Adjust for Langmuir-Hinshelwood recombination if shared.
     if (find(reactions.begin(), reactions.end(), "Langmuir-Hinshelwood recombination") != reactions.end()) {
-
-        // If LH is present:
-        if ( (find(reactions.begin(), reactions.end(), "Chemisorption") != reactions.end()) &&
-             (find(reactions.begin(), reactions.end(), "Surface Diffusion") != reactions.end()) ) {
-            // Both present: LH effective parameters = 1.
-            neededRateConstants = neededRateConstants - reactionRateCount.at("Langmuir-Hinshelwood recombination") + 1;~
-
-
+        if ((find(reactions.begin(), reactions.end(), "Chemisorption") != reactions.end()) &&
+            (find(reactions.begin(), reactions.end(), "Surface Diffusion") != reactions.end())) {
+            neededRateConstants = neededRateConstants - reactionRateCount.at("Langmuir-Hinshelwood recombination") + 1;
         } else if (find(reactions.begin(), reactions.end(), "Chemisorption") != reactions.end()) {
-            // Chemisorption present: LH effective parameters = 3.
             neededRateConstants = neededRateConstants - reactionRateCount.at("Langmuir-Hinshelwood recombination") + 3;
-
         } else if (find(reactions.begin(), reactions.end(), "Surface Diffusion") != reactions.end()) {
-            // Surface Diffusion present: LH effective parameters = 3.
             neededRateConstants = neededRateConstants - reactionRateCount.at("Langmuir-Hinshelwood recombination") + 3;
-
         }
     }
 
+    // Build union of species.
     set<string> usedSpecies;
     for (auto &r : reactions) {
         auto it = reactionSpecies.find(r);
@@ -125,7 +130,6 @@ int main(int argc, char* argv[]) {
         for (auto &s : it->second)
             usedSpecies.insert(s);
     }
-
     vector<string> allSpecies;
     vector<string> fixedOrder = {"A", "B", "Af", "As", "Fv", "Sv", "A2"};
     for (const auto &s : fixedOrder) {
@@ -133,17 +137,12 @@ int main(int argc, char* argv[]) {
             allSpecies.push_back(s);
     }
 
-    int totalNumericNeeded = 0;
-    if (reactions.size() == 1 && reactions[0] == "Basic") {
-        totalNumericNeeded = 2 + (int)allSpecies.size() + 1;
-    } else {
-        totalNumericNeeded = 3 + neededRateConstants + (int)allSpecies.size() + 1;
-    }
-
+    int totalNumericNeeded = (reactions.size() == 1 && reactions[0] == "Basic") ? 
+                              (2 + allSpecies.size() + 1) : (3 + neededRateConstants + allSpecies.size() + 1);
     int numericAvailable = argc - argIndex;
     if (numericAvailable < totalNumericNeeded) {
-        cerr << "Not enough numeric parameters provided.\n";
-        cerr << "Expected " << totalNumericNeeded << ", got " << numericAvailable << ".\n";
+        cerr << "Not enough numeric parameters provided. Expected " << totalNumericNeeded
+             << ", got " << numericAvailable << ".\n";
         return 1;
     }
 
@@ -151,22 +150,18 @@ int main(int argc, char* argv[]) {
     rates.reserve(neededRateConstants);
     if (reactions.size() == 1 && reactions[0] == "Basic") {
         for (int i = 0; i < 2; i++) {
-            double val = stod(argv[argIndex++]);
-            rates.push_back(val);
+            rates.push_back(stod(argv[argIndex++]));
         }
-
     } else {
-
-        for (int i = 0; i < 3; i++) {
-            double val = stod(argv[argIndex++]);
-            rates.push_back(val);
+        for (int i = 0; i < 3; i++) { // General parameters: Tw, Tg, M.
+            rates.push_back(stod(argv[argIndex++]));
+        
         }
-
         for (int i = 0; i < neededRateConstants; i++) {
-            double val = stod(argv[argIndex++]);
-            rates.push_back(val);
+            rates.push_back(stod(argv[argIndex++]));
         }
     }
+
 
     vector<double> initState(allSpecies.size(), 0.0);
     for (int i = 0; i < (int)allSpecies.size(); i++) {
@@ -175,35 +170,34 @@ int main(int argc, char* argv[]) {
 
     double t_stop = stod(argv[argIndex++]);
 
+    // Build mapping from species name to index.
     map<string,int> speciesMap;
     for (int i = 0; i < (int)allSpecies.size(); i++) {
         speciesMap[allSpecies[i]] = i;
     }
 
-    // Safeguard to force A to be chosen
     if (speciesMap.find("A") != speciesMap.end()) {
         initial_A = initState[speciesMap["A"]];
     } else {
         cerr << "Species A is not in the union; cannot define initial_A.\n";
+        return 1;
     }
 
-    // Determine if Chemisorption and/or Surface Diffusion are present.
-    bool chemPresent = false, surfPresent = false;
-    for (auto &r : reactions) {
-        if (r == "Chemisorption") chemPresent = true;
-        if (r == "Surface Diffusion") surfPresent = true;
-    }
+    bool chemPresent = (find(reactions.begin(), reactions.end(), "Chemisorption") != reactions.end());
+    bool surfPresent = (find(reactions.begin(), reactions.end(), "Surface Diffusion") != reactions.end());
 
-    vector<ReactionEvent> events;
+    vector<ReactionEvent> events_MC;
     int ratePos = 0;
     for (auto &r : reactions) {
         vector<ReactionEvent> these = buildEventsForReaction(r, rates, ratePos, speciesMap, chemPresent, surfPresent);
-        events.insert(events.end(), these.begin(), these.end());
+        events_MC.insert(events_MC.end(), these.begin(), these.end());
     }
 
-    // File to store the values
-    string outputFilename = "output.txt";
-    simulateMultiReaction(t_stop, events, initState, allSpecies, outputFilename);
+    // Run Monte Carlo simulation.
+    string outputFilename_MC = "output.txt";
+    vector<double> initStatecopy = initState;
+    simulateMultiReaction(t_stop, events_MC, initState, allSpecies, outputFilename_MC);
 
     return 0;
 }
+

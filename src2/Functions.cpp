@@ -1,9 +1,3 @@
-/*
-    Welcome to the code to define the auxiliary functions to
-    correctly run code. This file uses a header file.
-*/
-
-// Necessary libraries/header files
 #include "Plasma-Surface-Recombination.h"
 #include <iostream>
 #include <vector>
@@ -36,8 +30,6 @@ extern double Er;
 extern double k_4;
 
 
-// Function setup the Monte Carlo simulation, including the 
-// calculation of the reaction rates.
 vector<ReactionEvent> buildEventsForReaction(const string& reaction, 
                                              const vector<double>& rates,
                                              int& rateIndex, 
@@ -110,7 +102,6 @@ vector<ReactionEvent> buildEventsForReaction(const string& reaction,
                 result.push_back(e);
             }
         }
-
         else if (reaction == "Chemisorption") {
             // Extract 3 parameters: k_3, k_4, Er.
             double k_3 = rates[rateIndex++];
@@ -158,7 +149,6 @@ vector<ReactionEvent> buildEventsForReaction(const string& reaction,
         }
         else if (reaction == "Langmuir-Hinshelwood recombination") {
             // LH normally requires 5 parameters: vD, ED, k4, Er, ELHF.
-            // Adjust extraction based on presence of Chemisorption and Surface Diffusion.
             double vD_local = 0.0, ED_local = 0.0, k4_local = 1.0, Er_local = 0.0, ELHF_local = 0.0;
             double tau_d_1 = 1.0;
             if (!chemPresent && !surfPresent) {
@@ -219,13 +209,11 @@ vector<ReactionEvent> buildEventsForReaction(const string& reaction,
 }
 
 
-// Function that generates a progress bar
+// Function that generates a progress bar.
 void printProgressBar(double progress, double total) 
-
 {
-
-   int barWidth = 50.0;
-   float percent = (float)progress / total;
+   int barWidth = 50;
+   float percent = static_cast<float>(progress) / total;
    int filled = percent * barWidth;
  
    std::cout << "\r[";
@@ -237,23 +225,22 @@ void printProgressBar(double progress, double total)
        else
            std::cout << " ";
    }
-   std::cout << "] " << int(percent * 100.0) << "%";
-   std::cout.flush();
+   std::cout << "] " << int(percent * 100.0) << "%" << std::flush;
 }
 
 
-// Function that joins all of the reactions chosen as well as
-// running the Monte Carlo simulation.
+// Function that runs the Monte Carlo simulation, storing both the populations
+// and the instantaneous propensities (Big R values) at each time step.
 void simulateMultiReaction(double t_stop, 
                            const vector<ReactionEvent>& events, 
                            vector<double>& state,
                            const vector<string>& speciesList,
                            const string& outputFilename)
-
 {
     double t = 0.0;
-    vector<double> times{t};
-    vector<vector<double>> states{state};
+    vector<double> times { t };
+    vector<vector<double>> states { state };
+    vector<vector<double>> propHistory; // To store propensities for each event at each time step.
     
     random_device rd;
     mt19937 gen(rd());
@@ -261,15 +248,10 @@ void simulateMultiReaction(double t_stop,
 
     printProgressBar(0.0, t_stop);
 
-    // Monte Carlo code. From random numbers generated, the concentration
-    // will evolve accordingly, generating a time step based on the random
-    // number and the distribuition. The Monte Carlo code will also pick
-    // based on a random number which reaction will happen at each time step.
     while (t < t_stop) {
         double total_rate = 0.0;
         vector<double> rvec;
         rvec.reserve(events.size());
-
         for (auto &evt : events) {
             double r = evt.propensity(state, evt.k);
             rvec.push_back(r);
@@ -282,26 +264,23 @@ void simulateMultiReaction(double t_stop,
         double r1 = dis(gen);
         double dt = -log(r1) / total_rate;
         t += dt;
-
         if (t > t_stop)
             break;
 
         double r2 = dis(gen) * total_rate;
         double cum = 0.0;
         int chosen = -1;
-
-        for (int i = 0; i < (int)events.size(); i++) {
+        for (int i = 0; i < static_cast<int>(events.size()); i++) {
             cum += rvec[i];
             if (cum >= r2) {
                 chosen = i;
                 break;
             }
         }
-
         if (chosen < 0)
             break;
         
-        for (int i = 0; i < (int)state.size(); i++) {
+        for (int i = 0; i < static_cast<int>(state.size()); i++) {
             state[i] += events[chosen].delta[i];
             if (state[i] < 0)
                 state[i] = 0;
@@ -309,9 +288,9 @@ void simulateMultiReaction(double t_stop,
 
         times.push_back(t);
         states.push_back(state);
+        propHistory.push_back(rvec);  // Store the propensities computed at this time step.
 
         printProgressBar(t, t_stop);
-
     }
     cout << "\n";
 
@@ -320,22 +299,36 @@ void simulateMultiReaction(double t_stop,
         cerr << "Error opening file: " << outputFilename << "\n";
         return;
     }
-
+    // Write header: time, populations, then propensities.
     outFile << "Time";
     for (auto &s : speciesList) {
-        outFile << "\t" << "Population" << s;
+        outFile << "\tPopulation " << s;
     }
-
-    // Store values in the output.txt file.
+    for (size_t i = 0; i < events.size(); i++) {
+        outFile << "\tR" << i+1;
+    }
     outFile << "\n";
+    
+    // Write out each time step.
     for (size_t i = 0; i < times.size(); i++) {
         outFile << times[i];
-        for (int j = 0; j < (int)speciesList.size(); j++) {
+        // Write species populations.
+        for (size_t j = 0; j < speciesList.size(); j++) {
             outFile << "\t" << states[i][j];
+        }
+        // For the initial time step, we have no propensity values.
+        if (i == 0) {
+            for (size_t k = 0; k < events.size(); k++)
+                outFile << "\t0";
+        } else {
+            int propIndex = i - 1; // propHistory is one element shorter.
+            for (size_t k = 0; k < events.size(); k++) {
+                outFile << "\t" << propHistory[propIndex][k];
+            }
         }
         outFile << "\n";
     }
-
+    
     outFile.close();
     cout << "Simulation complete. Output written to " << outputFilename << "\n";
 }
