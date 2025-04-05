@@ -6,6 +6,7 @@ atoms in a plasma with a surface.
 ## Table of Contents
 - [Installation](#installation)
 - [Usage](#usage)
+- [Extra Files](#usage)
 - [GUI window](#gui-window)  
   - [Select Reactions](#select-reactions)  
   - [Simulation Parameters](#simulation-parameters)  
@@ -16,6 +17,8 @@ atoms in a plasma with a surface.
 - [Output](#output)  
     - [Terminal](#terminal)  
     - [Plots](#plots)  
+      - [Concentration Evolution](#concentration-evolution)
+      - [Reaction Rate Evolution](#reaction-rate-evolution)
 - [Authors](#authors)
 
 ## Installation
@@ -66,6 +69,10 @@ To run the GUI, enter in the terminal:
    ```sh
    python3 GUI.py
    ```
+
+## Extra Files
+
+Apart from the GUI, we have added files to verify results with a RK4 solver. Furthermore, you can compile these with make, but you will need to create a file inside the folder ´build´ with ´mkdir obj´.
 
 ## GUI Window
 
@@ -130,14 +137,24 @@ On your terminal, there should be a progress bar telling how much the code has r
 
 ### Plots
 
-After closing the previously mentioned window, a plot will appear showing the evolution of the normalized concentrations in time.
+After closing the previously mentioned window, a few plots will appear in the order shown in this README.
+
+#### Concentration Evolution
+
+The first plot that will appear will be the one regarding the evolution of the concentrations of each species. This will be normalized to the maximum value of each concentration.
+
+#### Reaction Rate Evolution
+
+The second plot that will appear will be the one regarding the evolution of the reaction rates of each reaction. This will be normalized to the maximum value of each reaction rate.
 
 ## Authors
 
 This projected was made by:
 
 Daniela Estaço
+
 José Mariano
+
 
 Under the guidance of:
 
